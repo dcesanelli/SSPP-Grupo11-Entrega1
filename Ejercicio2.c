@@ -31,21 +31,6 @@ void blkmul(double *ablk, double *bblk, double *cblk, int N, int BS)
   }
 }
 
-/* Multiply square matrices, blocked version */
-void matmul(double *ma, double *mb, double *mc, int N, int BS)
-{
-  int i, j, k;    /* Guess what... */
-
-  for (int i = 0; i < N; i += BS) {
-    for (int j = 0; j < N; j += BS) {
-      mc[BY_ROW(i,j,N)] = 0;
-      for (int k = 0; k < N; k += BS) {
-        blkmul(&ma[BY_ROW(i,k,N)], &mb[BY_COL(k,j,N)], &mc[BY_ROW(i,j,N)], N, BS);
-      }
-    }
-  }
-}
-
 int main(int argc, char* argv[]){
   int N, BS;
 
@@ -98,10 +83,42 @@ int main(int argc, char* argv[]){
   avgR /= N*N;
 
   // Multiplicación R*A
-  matmul(R, A, ra, N, BS);
+  for (int i = 0; i < N; i += BS) {
+    for (int j = 0; j < N; j += BS) {
+      ra[BY_ROW(i,j,N)] = 0;
+      for (int k = 0; k < N; k += BS) {
+        double *m1 = &R[BY_ROW(i,k,N)];
+        double *m2 = &A[BY_COL(k,j,N)];
+        double *mr = &ra[BY_ROW(i,k,N)];
+        for (int x = 0; x < BS; x++) {
+          for (int y = 0; y < BS; y++) {
+            for (int z = 0; z < BS; z++) {
+              mr[BY_ROW(x,y,N)] += m1[BY_ROW(x,z,N)] * m2[BY_COL(z,y,N)];
+            }
+          }
+        }
+      }
+    }
+  }
 
   // Multiplicación R*B
-  matmul(R, B, rb, N, BS);
+  for (int i = 0; i < N; i += BS) {
+    for (int j = 0; j < N; j += BS) {
+      rb[BY_ROW(i,j,N)] = 0;
+      for (int k = 0; k < N; k += BS) {
+        double *m1 = &R[BY_ROW(i,k,N)];
+        double *m2 = &B[BY_COL(k,j,N)];
+        double *mr = &rb[BY_ROW(i,k,N)];
+        for (int x = 0; x < BS; x++) {
+          for (int y = 0; y < BS; y++) {
+            for (int z = 0; z < BS; z++) {
+              mr[BY_ROW(x,y,N)] += m1[BY_ROW(x,z,N)] * m2[BY_COL(z,y,N)];
+            }
+          }
+        }
+      }
+    }
+  }
 
   // Calcular C = T + avgR*(RA + RB)
   for(int i = 0; i < N; i++) {
