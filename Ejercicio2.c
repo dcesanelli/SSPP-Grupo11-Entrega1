@@ -17,20 +17,6 @@ double randFP(double min, double max) {
   return min + (rand() / div);
 }
 
-/* Multiply (block)submatrices */
-void blkmul(double *ablk, double *bblk, double *cblk, int N, int BS)
-{
-  int i, j, k;
-
-  for (i = 0; i < BS; i++) {
-    for (j = 0; j < BS; j++) {
-      for  (k = 0; k < BS; k++) {
-        cblk[BY_ROW(i,j,N)] += ablk[BY_ROW(i,k,N)] * bblk[BY_COL(k,j,N)];
-      }
-    }
-  }
-}
-
 int main(int argc, char* argv[]){
   int N, BS;
 
