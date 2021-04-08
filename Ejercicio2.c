@@ -17,14 +17,43 @@ double randFP(double min, double max) {
   return min + (rand() / div);
 }
 
+/* Multiply (block)submatrices */
+void blkmul(double *ablk, double *bblk, double *cblk, int N, int BS)
+{
+  int i, j, k;
+
+  for (i = 0; i < BS; i++) {
+    for (j = 0; j < BS; j++) {
+      for  (k = 0; k < BS; k++) {
+        cblk[BY_ROW(i,j,N)] += ablk[BY_ROW(i,k,N)] * bblk[BY_COL(k,j,N)];
+      }
+    }
+  }
+}
+
+/* Multiply square matrices, blocked version */
+void matmul(double *ma, double *mb, double *mc, int N, int BS)
+{
+  int i, j, k;    /* Guess what... */
+
+  for (int i = 0; i < N; i += BS) {
+    for (int j = 0; j < N; j += BS) {
+      mc[BY_ROW(i,j,N)] = 0;
+      for (int k = 0; k < N; k += BS) {
+        blkmul(&ma[BY_ROW(i,k,N)], &mb[BY_COL(k,j,N)], &mc[BY_ROW(i,j,N)], N, BS);
+      }
+    }
+  }
+}
+
 int main(int argc, char* argv[]){
+  int N, BS;
+
   // Controla los argumentos al programa
-  if (argc < 2){
-    printf("\n Falta un argumento:: N dimension de la matriz \n");
+  if (argc != 3 || (N = atoi(argv[1])) <= 0 || (BS = atoi(argv[2])) <= 0 || (N % BS != 0)) {
+    printf("\nError, modo de uso: %s N BS (N debe ser multiplo de BS)\n", argv[0]);
     return 0;
   }
-
-  int N = atoi(argv[1]);
 
   // Reservar memoria para las matrices y auxiliares
   double *A = (double *) malloc(sizeof(double) * N * N);
@@ -69,24 +98,10 @@ int main(int argc, char* argv[]){
   avgR /= N*N;
 
   // Multiplicación R*A
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      ra[BY_ROW(i,j,N)] = 0;
-      for (int k = 0; k < N; k++) {
-        ra[BY_ROW(i,j,N)] += R[BY_ROW(i,k,N)] * A[BY_COL(k,j,N)];
-      }
-    }
-  }
+  matmul(R, A, ra, N, BS);
 
   // Multiplicación R*B
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      rb[BY_ROW(i,j,N)] = 0;
-      for (int k = 0; k < N; k++) {
-        rb[BY_ROW(i,j,N)] += R[BY_ROW(i,k,N)] * B[BY_COL(k,j,N)];
-      }
-    }
-  }
+  matmul(R, B, rb, N, BS);
 
   // Calcular C = T + avgR*(RA + RB)
   for(int i = 0; i < N; i++) {
