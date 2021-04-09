@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
   double *T = (double *)malloc(sizeof(double) * N * N);
   double *R = (double *)malloc(sizeof(double) * N * N);
   double *M = (double *)malloc(sizeof(double) * N * N);
-  double *ra = (double *)malloc(sizeof(double) * N * N);
-  double *rb = (double *)malloc(sizeof(double) * N * N);
+  double *ab = (double *)malloc(sizeof(double) * N * N);
+  double *rab = (double *)malloc(sizeof(double) * N * N);
 
   time_t t;
   srand((unsigned)time(&t));
@@ -70,57 +70,42 @@ int main(int argc, char *argv[])
   }
   avgR /= N * N;
 
-  // Multiplicación R*A
-  for (int i = 0; i < N; i += BS)
-  {
-    for (int j = 0; j < N; j += BS)
-    {
-      ra[BY_ROW(i, j, N)] = 0;
-      for (int k = 0; k < N; k += BS)
-      {
-        for (int x = 0; x < BS; x++)
-        {
-          for (int y = 0; y < BS; y++)
-          {
-            for (int z = 0; z < BS; z++)
-            {
-              ra[BY_ROW(x, y, N)] += R[BY_ROW(x, z, N)] * A[BY_COL(z, y, N)];
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Multiplicación R*B
-  for (int i = 0; i < N; i += BS)
-  {
-    for (int j = 0; j < N; j += BS)
-    {
-      rb[BY_ROW(i, j, N)] = 0;
-      for (int k = 0; k < N; k += BS)
-      {
-        for (int x = 0; x < BS; x++)
-        {
-          for (int y = 0; y < BS; y++)
-          {
-            for (int z = 0; z < BS; z++)
-            {
-              rb[BY_ROW(x, y, N)] += R[BY_ROW(x, z, N)] * B[BY_COL(z, y, N)];
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Calcular C = T + avgR*(RA + RB)
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < N; j++)
     {
-      C[BY_ROW(i, j, N)] =
-          T[BY_ROW(i, j, N)] + avgR * (ra[BY_ROW(i, j, N)] + rb[BY_ROW(i, j, N)]);
+      ab[BY_COL(i, j, N)] = A[BY_COL(i, j, N)] + B[BY_COL(i, j, N)];
+    }
+  }
+
+  // Multiplicación R*(A+B)
+  for (int i = 0; i < N; i += BS)
+  {
+    for (int j = 0; j < N; j += BS)
+    {
+      rab[BY_ROW(i, j, N)] = 0;
+      for (int k = 0; k < N; k += BS)
+      {
+        for (int x = 0; x < BS; x++)
+        {
+          for (int y = 0; y < BS; y++)
+          {
+            for (int z = 0; z < BS; z++)
+            {
+              rab[BY_ROW(x, y, N)] += R[BY_ROW(x, z, N)] * ab[BY_COL(z, y, N)];
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Calcular C = T + avgR * R(A + B)
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      C[BY_ROW(i, j, N)] = T[BY_ROW(i, j, N)] + avgR * rab[BY_ROW(i, j, N)];
     }
   }
 
@@ -133,8 +118,8 @@ int main(int argc, char *argv[])
   free(T);
   free(R);
   free(M);
-  free(ra);
-  free(rb);
+  free(ab);
+  free(rab);
 }
 
 #include <sys/time.h>
